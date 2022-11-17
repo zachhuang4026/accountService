@@ -1,9 +1,22 @@
 from flask import Flask, Response, json, jsonify, request
-
+import psycopg2
 
 app = Flask(__name__)
 
-app.config['DEBUG'] = True
+app.config['DEBUG'] = False
+
+def db_query(query, db='accounts'):
+    try:
+        conn = psycopg2.connect(f"dbname={db} user='postgres' host='localhost' password='secret_password'")
+        cursor = conn.cursor()
+        cursor.execute(query)
+        rows = cursor.fetchall() # cursor.rowcount
+        conn.commit()
+        conn.close()
+        return rows
+    except:
+        print('issue with execution')
+
 
 @app.route('/')
 def heartbeat():
@@ -28,7 +41,11 @@ def getAccount(account_id):
         }
     else:
         # ToDo - communicate with DB
-        pass
+        account_query = f'select * from ACCOUNT_DIM where account_id = {account_id}'
+        account_info = db_query(account_query)
+        # Temp work around for returning response 
+        response = {'account_id': account_id, 'name': account_info[0][1], 'email': account_info[0][2]}
+        status_code = 200
     return jsonify(response), status_code
 
 @app.route('/authenticate', methods=['POST'])
@@ -56,7 +73,7 @@ def authenticate():
         response = {'message': message, 'status_code': status_code}
         return jsonify(response), status_code
 
-@app.route('createAccount', methods=['POST'])
+@app.route('/createAccount', methods=['POST'])
 def createAccount():
     # ToDo - verify input format 
     name = request.json.get('name')
@@ -70,6 +87,20 @@ def createAccount():
         response = {'message': message, 'status_code': status_code}
         return response
     # ToDo - Try/Except communication with database
+    # ToDo - UUID for account ID
+    account_info = f"(14, '{name}', '{email}', '{password}', 'Active', False)"
+    insert_sql = f'''
+    INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
+    VALUES
+    {account_info};
+    '''
+    # ToDo - adjust function to accomodate
+    conn = psycopg2.connect(f"dbname='accounts' user='postgres' host='localhost' password='secret_password'")
+    cursor = conn.cursor()
+    cursor.execute(insert_sql)
+    # rows = cursor.fetchall() # cursor.rowcount
+    conn.commit()
+    conn.close()
 
     status_code = 200
     response = {'message': 'Account successfully created', 'status_code': status_code}
@@ -111,4 +142,4 @@ def updateAccount():
 # suspendAccount
 
 
-app.run(host='0.0.0.0', port=8080)
+app.run(host='0.0.0.0', port=5001)
