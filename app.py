@@ -1,21 +1,27 @@
 from flask import Flask, Response, json, jsonify, request
 import psycopg2
+import uuid
 
 app = Flask(__name__)
 
 app.config['DEBUG'] = False
 
-def db_query(query, db='accounts'):
+def db_query(query, fetch_results=False, db='accounts'):
     try:
+        rows = None
         conn = psycopg2.connect(f"dbname={db} user='postgres' host='localhost' password='secret_password'")
         cursor = conn.cursor()
         cursor.execute(query)
-        rows = cursor.fetchall() # cursor.rowcount
+        if fetch_results:
+            rows = cursor.fetchall() # cursor.rowcount
+            schema = cursor.description
+            column_names = [col[0] for col in schema]
+            rows = [dict(zip(column_names, r)) for r in rows] # Return result as list of dict        
         conn.commit()
         conn.close()
         return rows
     except:
-        print('issue with execution')
+        raise
 
 
 @app.route('/')
@@ -41,22 +47,28 @@ def getAccount(account_id):
         }
     else:
         # ToDo - communicate with DB
-        account_query = f'select * from ACCOUNT_DIM where account_id = {account_id}'
-        account_info = db_query(account_query)
-        # Temp work around for returning response 
-        response = {'account_id': account_id, 'name': account_info[0][1], 'email': account_info[0][2]}
-        status_code = 200
+        account_query = f'select account_id, name, email from ACCOUNT_DIM where account_id = {account_id}'
+        db_response = db_query(account_query, fetch_results=True)
+        if len(db_response) > 1:
+            status_code = 500
+            response = {'message': 'Database returned an unexpected number of records'}
+        else:
+            account_info = db_response[0]
+            status_code = 200
+            response = {'data': account_info, 'status_code': status_code}
     return jsonify(response), status_code
 
 @app.route('/authenticate', methods=['POST'])
 def authenticate():
     # ToDo - verify input format
-    if request.json.get('email') or request.json.get('password') is None:
+    print(request.json.get('email'))
+    print(request.json.get('password'))
+    if None in [request.json.get('email'), request.json.get('password')]:
         # throw error
         status_code = 400
         message = 'Bad request. Did not contain email or password values in JSON'
         response = {'message': message, 'status_code': status_code}
-        return response
+        return jsonify(response), status_code
     else:
         email = request.json.get('email')
         password = request.json.get('password')
@@ -65,12 +77,22 @@ def authenticate():
             message = 'Authorization granted'
             status_code = 200
         else:
-            # ToDo check User service to see if matches
             # ToDo - probably should handle pw as hashes
             # ToDo - return JWT token?
-            message = 'foo'
-            status_code = 200
-        response = {'message': message, 'status_code': status_code}
+            account_query = f"select account_id, email, password from ACCOUNT_DIM where email = '{email}'"
+            db_response = db_query(account_query, fetch_results=True)
+            if len(db_response) > 1:
+                status_code = 500
+                response = {'message': 'Database returned an unexpected number of records'}
+            else:
+                account_info = db_response[0]
+                status_code = 200
+                if account_info['email'] == email and account_info['password'] == password:
+                    # Authenticated
+                    response = {'message': 'User is authenticated', 'status_code': status_code}
+                else:
+                    response = {'message': 'Provided email/password do not match', 'status_code': status_code}
+        
         return jsonify(response), status_code
 
 @app.route('/createAccount', methods=['POST'])
@@ -83,28 +105,38 @@ def createAccount():
     if None in [request.json.get('name'), request.json.get('email'), request.json.get('password')]:
         # throw error
         status_code = 400
-        message = 'Bad request. Did not contain email or password values in JSON'
-        response = {'message': message, 'status_code': status_code}
-        return response
+        response = {'message': 'Bad request. Did not contain email or password values in JSON', 'status_code': status_code}
     # ToDo - Try/Except communication with database
-    # ToDo - UUID for account ID
-    account_info = f"(14, '{name}', '{email}', '{password}', 'Active', False)"
-    insert_sql = f'''
-    INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
-    VALUES
-    {account_info};
-    '''
-    # ToDo - adjust function to accomodate
-    conn = psycopg2.connect(f"dbname='accounts' user='postgres' host='localhost' password='secret_password'")
-    cursor = conn.cursor()
-    cursor.execute(insert_sql)
-    # rows = cursor.fetchall() # cursor.rowcount
-    conn.commit()
-    conn.close()
+    # Check if email already in Database
+    else:
+        account_query = f"select account_id from ACCOUNT_DIM where email = '{email}'"
+        db_response = db_query(account_query, fetch_results=True)
+        # Check if account already exists for email
+        if len(db_response) != 0:
+            status_code = 200
+            message = 'Account already exists for the provided email'
+            response = {'message': message, 'status_code': status_code}
+            return jsonify(response), status_code
+        
+        # ToDo - UUID for account ID
+        # account_id = uuid.uuid4().int
+        # ToDo: determine best way to come up with unique account_id
+        account_id = hash(email) % 2147483647 # max int value
+        account_info = f"({account_id}, '{name}', '{email}', '{password}', 'Active', False)"
+        insert_sql = f'''
+        INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
+        VALUES
+        {account_info};
+        '''
+        try:
+            db_query(insert_sql)
+            status_code = 200
+            response = {'message': 'Account successfully created', 'status_code': status_code}
+        except:
+            status_code = 500
+            response = {'message': 'Error creating account', 'status_code': status_code}
 
-    status_code = 200
-    response = {'message': 'Account successfully created', 'status_code': status_code}
-    return response
+    return jsonify(response), status_code  
 
 @app.route('/deleteAccount', methods=['POST'])
 def deleteAccount():
