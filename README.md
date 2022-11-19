@@ -8,6 +8,7 @@ docker exec -it AccountService /bin/sh
 apk add postgresql-dev gcc python3-dev py3-pip musl-dev
 pip install flask
 pip install psycopg2 # https://github.com/psycopg/psycopg2/issues/684#issuecomment-392015532
+pip install requests
 mkdir /accountService
 
 # Create Account DB [Postgres Shell]
@@ -29,3 +30,21 @@ python3 db_setup.py
 | `/createAccount`           | Add new record to DB                                | POST        |
 | `/deleteAccount`           | Delete record from DB                               | POST        |
 | `/updateAccount`           | Update values for existing record in DB             | POST        |
+
+
+## Testing
+**Python `requests` Library**
+```python
+# While flask app is Running
+>>> import requests
+>>> response = requests.get('http://localhost:5001/')
+>>> response.json
+{'code': 200, 'message': 'User microservice is online'}
+>>> account_info = {'name': 'Christian Pulisic', 'email': 'cp10@gmail.com', 'password': 'soccer'}
+>>> response = requests.post('http://localhost:5001/createAccount', json=account_info)
+>>> response.json()
+{'message': 'Account successfully created', 'status_code': 200}
+```
+
+**Postman**
+- Set POST input parameters using the Raw input for request body. https://stackoverflow.com/questions/39008071/send-post-data-via-raw-json-with-postman
