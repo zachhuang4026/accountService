@@ -63,9 +63,9 @@ def getAccount(account_id):
         WHERE ACCOUNT_ID = {account_id}
         '''
         db_response = db_query(account_query, fetch_results=True)
-        if len(db_response) > 1:
+        if len(db_response) != 1:
             status_code = 500
-            response = {'message': 'Database returned an unexpected number of records'}
+            response = {'message': 'Database returned an unexpected number of records', 'status_code': status_code}
         else:
             account_info = db_response[0]
             status_code = 200
@@ -105,6 +105,9 @@ def authenticate():
             if len(db_response) > 1:
                 status_code = 500
                 response = {'message': 'Database returned an unexpected number of records', 'status_code': status_code}
+            elif len(db_response) == 0:
+                status_code = 400
+                response = {'message': 'User not found in database', 'status_code': status_code}
             else:
                 account_info = db_response[0]
                 status_code = 200
