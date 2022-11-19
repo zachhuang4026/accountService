@@ -1,6 +1,7 @@
-from flask import Flask, Response, json, jsonify, request
+from flask import Flask, Response, json, jsonify, request, redirect, url_for
 import psycopg2
 import uuid
+import time
 
 app = Flask(__name__)
 
@@ -105,7 +106,7 @@ def createAccount():
     if None in [request.json.get('name'), request.json.get('email'), request.json.get('password')]:
         # throw error
         status_code = 400
-        response = {'message': 'Bad request. Did not contain email or password values in JSON', 'status_code': status_code}
+        response = {'message': 'Bad request. Did not contain required values in JSON', 'status_code': status_code}
     # ToDo - Try/Except communication with database
     # Check if email already in Database
     else:
@@ -121,7 +122,7 @@ def createAccount():
         # ToDo - UUID for account ID
         # account_id = uuid.uuid4().int
         # ToDo: determine best way to come up with unique account_id
-        account_id = hash(email) % 2147483647 # max int value
+        account_id = hash(email + str(time.time())) % 2147483647 # max int value
         account_info = f"({account_id}, '{name}', '{email}', '{password}', 'Active', False)"
         insert_sql = f'''
         INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
@@ -142,36 +143,55 @@ def createAccount():
 def deleteAccount():
     # ToDo - verify input format 
     account_id = request.json.get('account_id')
-    # ToDo - communicate with DB
-    status_code = 200
-    response = {'message': 'Account successfully deleted', 'status_code': status_code}
-    return response
-
-@app.route('/suspendAccount', methods=['POST'])
-def suspendAccount():
-    # ToDo - verify input format 
-    account_id = request.json.get('account_id')
-    # ToDo - communicate with DB
-    status_code = 200
-    response = {'message': 'Account successfully suspended', 'status_code': status_code}
-    return response
+    if account_id is None:
+        status_code = 400
+        response = {'message': 'Bad request. Did not contain account_id values in JSON', 'status_code': status_code}
+    else:
+        delete_sql = f'delete from account_dim where account_id = {account_id};'
+        try:
+            db_query(delete_sql)
+            status_code = 200
+            response = {'message': 'Account successfully deleted', 'status_code': status_code}
+        except:
+            status_code = 500
+            response = {'message': 'Error deleting account', 'status_code': status_code}
+    return jsonify(response), status_code
 
 @app.route('/updateAccount', methods=['POST'])
 def updateAccount():
     # ToDo - verify input format 
+    print('in /updateAccount')
     account_id = request.json.get('account_id')
-    update_params = request.json.get()
-    # ToDo - communicate with DB
-    status_code = 200
-    response = {'message': 'Account successfully updated', 'status_code': status_code}
-    return response
+    update_params = request.json.get('data')
+    print(update_params)
+    if account_id is None:
+        status_code = 400
+        response = {'message': 'Bad request. Did not contain email or password values in JSON', 'status_code': status_code}
+    else:
+        # table_info_query = "select column_name, data_type from information_schema.columns where table_name = 'account_dim';"
+        col_str = ''
+        for k,v in update_params.items(): # ToDo - is hardcoding logic for creating sql best approach here?
+            if k == 'account_id': # prevent updating of account_id
+                pass
+            if k in ['name', 'email', 'password', 'account_status']:
+                col_str += f"{k} = '{v}',"
+            else:
+                col_str += f"{k} = {v},"
+        col_str = col_str[:-1] # remove traililng comma
+        print(col_str)
 
-
-# getAccount
-# createAccount
-# deleteAccount
-# updateAccount
-# suspendAccount
-
+        update_sql = f'''
+        update account_dim
+        set {col_str}
+        where account_id = {account_id}
+        '''
+        try:
+            db_query(update_sql)
+            status_code = 200
+            response = {'message': 'Account information successfully updated', 'status_code': status_code}
+        except:
+            status_code = 500
+            response = {'message': 'Error deleting account', 'status_code': status_code}
+    return jsonify(response), status_code
 
 app.run(host='0.0.0.0', port=5001)
