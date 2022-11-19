@@ -1,6 +1,5 @@
-from flask import Flask, Response, json, jsonify, request, redirect, url_for
+from flask import Flask, jsonify, request
 import psycopg2
-import uuid
 import time
 
 app = Flask(__name__)
@@ -8,6 +7,11 @@ app = Flask(__name__)
 app.config['DEBUG'] = False
 
 def db_query(query, fetch_results=False, db='accounts'):
+    """
+    Helper function to execute SQL query on ACCOUNT_DIM table.
+    The fetch_results parameter determines whether function should return 
+    results from the query (e.g. SELECT statement) or just execute the query (e.g. INSERT/DELETE)
+    """
     try:
         rows = None
         conn = psycopg2.connect(f"dbname={db} user='postgres' host='localhost' password='secret_password'")
@@ -27,6 +31,9 @@ def db_query(query, fetch_results=False, db='accounts'):
 
 @app.route('/')
 def heartbeat():
+    """
+    Endpoint to check if microservice is online
+    """
     status_code = 200
     response = {'code': status_code,
                 'message': 'User microservice is online'}
@@ -35,7 +42,9 @@ def heartbeat():
 @app.route('/getAccount/<account_id>', methods=['GET'])
 def getAccount(account_id):
     """
-    Return account information, given account id
+    Provided account_id in query string, return account information.
+    Throws error if > 1 record is found for provided account_id
+    Account info returned: account_id, name, email 
     """
     # ToDo - get account info from DB
     if app.config['DEBUG'] == True:
@@ -48,7 +57,11 @@ def getAccount(account_id):
         }
     else:
         # ToDo - communicate with DB
-        account_query = f'select account_id, name, email from ACCOUNT_DIM where account_id = {account_id}'
+        account_query = f'''
+        SELECT ACCOUNT_ID, NAME, EMAIL
+        FROM ACCOUNT_DIM
+        WHERE ACCOUNT_ID = {account_id}
+        '''
         db_response = db_query(account_query, fetch_results=True)
         if len(db_response) > 1:
             status_code = 500
@@ -61,30 +74,37 @@ def getAccount(account_id):
 
 @app.route('/authenticate', methods=['POST'])
 def authenticate():
-    # ToDo - verify input format
+    """
+    Verifies provided email and password match record in DB
+    Expected POST input format (JSON content type):
+    {"email": email, "password": password}
+    """
     print(request.json.get('email'))
     print(request.json.get('password'))
-    if None in [request.json.get('email'), request.json.get('password')]:
-        # throw error
+    email = request.json.get('email')
+    password = request.json.get('password')
+    
+    # If missing required POST parameters, throw error
+    if None in [email, password]:
         status_code = 400
-        message = 'Bad request. Did not contain email or password values in JSON'
-        response = {'message': message, 'status_code': status_code}
-        return jsonify(response), status_code
+        response = {'message': 'Bad request. Did not contain email or password values in JSON', 'status_code': status_code}
     else:
-        email = request.json.get('email')
-        password = request.json.get('password')
-
         if app.config['DEBUG'] == True:
-            message = 'Authorization granted'
             status_code = 200
+            response = {'message': 'Authorization granted', 'status_code': status_code}
         else:
             # ToDo - probably should handle pw as hashes
             # ToDo - return JWT token?
-            account_query = f"select account_id, email, password from ACCOUNT_DIM where email = '{email}'"
+            account_query = f"""
+            SELECT ACCOUNT_ID, EMAIL, PASSWORD
+            FROM ACCOUNT_DIM
+            WHERE EMAIL = '{email}'"""
+            
             db_response = db_query(account_query, fetch_results=True)
+
             if len(db_response) > 1:
                 status_code = 500
-                response = {'message': 'Database returned an unexpected number of records'}
+                response = {'message': 'Database returned an unexpected number of records', 'status_code': status_code}
             else:
                 account_info = db_response[0]
                 status_code = 200
@@ -98,36 +118,31 @@ def authenticate():
 
 @app.route('/createAccount', methods=['POST'])
 def createAccount():
-    # ToDo - verify input format 
+    
     name = request.json.get('name')
     email = request.json.get('email')
     password = request.json.get('password')
 
-    if None in [request.json.get('name'), request.json.get('email'), request.json.get('password')]:
-        # throw error
+    # If missing required POST parameters, throw error
+    if None in [name, email, password]:
         status_code = 400
         response = {'message': 'Bad request. Did not contain required values in JSON', 'status_code': status_code}
-    # ToDo - Try/Except communication with database
-    # Check if email already in Database
     else:
+        # Check if account already exists for email
         account_query = f"select account_id from ACCOUNT_DIM where email = '{email}'"
         db_response = db_query(account_query, fetch_results=True)
-        # Check if account already exists for email
         if len(db_response) != 0:
             status_code = 200
-            message = 'Account already exists for the provided email'
-            response = {'message': message, 'status_code': status_code}
+            response = {'message': 'Account already exists for the provided email', 'status_code': status_code}
             return jsonify(response), status_code
         
-        # ToDo - UUID for account ID
-        # account_id = uuid.uuid4().int
+        # Populate values for account, insert into DB
         # ToDo: determine best way to come up with unique account_id
         account_id = hash(email + str(time.time())) % 2147483647 # max int value
         account_info = f"({account_id}, '{name}', '{email}', '{password}', 'Active', False)"
         insert_sql = f'''
         INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
-        VALUES
-        {account_info};
+        VALUES {account_info};
         '''
         try:
             db_query(insert_sql)
@@ -141,13 +156,17 @@ def createAccount():
 
 @app.route('/deleteAccount', methods=['POST'])
 def deleteAccount():
-    # ToDo - verify input format 
     account_id = request.json.get('account_id')
+    # If missing required POST parameters, throw error
     if account_id is None:
         status_code = 400
         response = {'message': 'Bad request. Did not contain account_id values in JSON', 'status_code': status_code}
     else:
-        delete_sql = f'delete from account_dim where account_id = {account_id};'
+        delete_sql = f'''
+        DELETE 
+        FROM ACCOUNT_DIM 
+        WHERE ACCOUNT_ID = {account_id};
+        '''
         try:
             db_query(delete_sql)
             status_code = 200
@@ -159,16 +178,14 @@ def deleteAccount():
 
 @app.route('/updateAccount', methods=['POST'])
 def updateAccount():
-    # ToDo - verify input format 
-    print('in /updateAccount')
     account_id = request.json.get('account_id')
     update_params = request.json.get('data')
-    print(update_params)
+    # If missing required POST parameters, throw error
     if account_id is None:
         status_code = 400
         response = {'message': 'Bad request. Did not contain email or password values in JSON', 'status_code': status_code}
     else:
-        # table_info_query = "select column_name, data_type from information_schema.columns where table_name = 'account_dim';"
+        # Create string of update logic 
         col_str = ''
         for k,v in update_params.items(): # ToDo - is hardcoding logic for creating sql best approach here?
             if k == 'account_id': # prevent updating of account_id
@@ -181,9 +198,9 @@ def updateAccount():
         print(col_str)
 
         update_sql = f'''
-        update account_dim
-        set {col_str}
-        where account_id = {account_id}
+        UPDATE ACCOUNT_DIM
+        SET {col_str}
+        WHERE ACCOUNT_ID = {account_id}
         '''
         try:
             db_query(update_sql)
