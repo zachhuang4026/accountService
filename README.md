@@ -1,3 +1,6 @@
+# Account Service
+
+## Setup
 **Creating Docker Container for Account Service**
 ```bash
 docker run -p 5001:5001 --name AccountService -e POSTGRES_PASSWORD=secret_password -d postgres:15.1-alpine
@@ -17,4 +20,12 @@ cd /accountService
 python3 db_setup.py
 ```
 
-https://luppeng.wordpress.com/2020/02/28/install-and-start-postgresql-on-alpine-linux/
+## Endpoints
+| Endpoint                   | Description                                         | HTTP Method |
+|----------------------------|-----------------------------------------------------|-------------|
+| `/`                        | Heartbeat method to check if microservice is online | GET         |
+| `/getAccount/<account_id>` | Return account information                          | GET         |
+| `/authenticate`            | Verify email/password match DB                      | POST        |
+| `/createAccount`           | Add new record to DB                                | POST        |
+| `/deleteAccount`           | Delete record from DB                               | POST        |
+| `/updateAccount`           | Update values for existing record in DB             | POST        |
