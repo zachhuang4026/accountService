@@ -13,12 +13,19 @@ mkdir /accountService
 
 # Create Account DB [Postgres Shell]
 psql --username postgres
-create database accounts;
+create database accounts; # Enter accounts db via \c accounts
 exit
 
 # Run Python script to setup ACCOUNT_DIM table with default values
 cd /accountService
 python3 db_setup.py
+```
+
+## Running Flask App
+```bash
+docker exec -it AccountService /bin/sh
+cd accountService
+python3 app.py
 ```
 
 ## Endpoints
@@ -48,3 +55,6 @@ python3 db_setup.py
 
 **Postman**
 - Set POST input parameters using the Raw input for request body. https://stackoverflow.com/questions/39008071/send-post-data-via-raw-json-with-postman
+
+## ToDo
+- in Update method, check to ensure updated email is not in use before updating

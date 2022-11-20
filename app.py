@@ -50,7 +50,7 @@ def getAccount(account_id):
     if app.config['DEBUG'] == True:
         status_code = 200
         response = {
-            'account_id': 1234,
+            'account_id': '1234',
             'name': 'John Doe',
             'email': 'john.doe@gmail.com',
             'status_code': status_code
@@ -60,7 +60,7 @@ def getAccount(account_id):
         account_query = f'''
         SELECT ACCOUNT_ID, NAME, EMAIL
         FROM ACCOUNT_DIM
-        WHERE ACCOUNT_ID = {account_id}
+        WHERE ACCOUNT_ID = '{account_id}'
         '''
         db_response = db_query(account_query, fetch_results=True)
         if len(db_response) != 1:
@@ -142,7 +142,7 @@ def createAccount():
         # Populate values for account, insert into DB
         # ToDo: determine best way to come up with unique account_id
         account_id = hash(email + str(time.time())) % 2147483647 # max int value
-        account_info = f"({account_id}, '{name}', '{email}', '{password}', 'Active', False)"
+        account_info = f"('{account_id}', '{name}', '{email}', '{password}', 'Active', False)"
         insert_sql = f'''
         INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
         VALUES {account_info};
@@ -168,7 +168,7 @@ def deleteAccount():
         delete_sql = f'''
         DELETE 
         FROM ACCOUNT_DIM 
-        WHERE ACCOUNT_ID = {account_id};
+        WHERE ACCOUNT_ID = '{account_id}';
         '''
         try:
             db_query(delete_sql)
@@ -193,7 +193,7 @@ def updateAccount():
         for k,v in update_params.items(): # ToDo - is hardcoding logic for creating sql best approach here?
             if k == 'account_id': # prevent updating of account_id
                 pass
-            if k in ['name', 'email', 'password', 'account_status']:
+            if k != 'is_admin':
                 col_str += f"{k} = '{v}',"
             else:
                 col_str += f"{k} = {v},"
@@ -203,7 +203,7 @@ def updateAccount():
         update_sql = f'''
         UPDATE ACCOUNT_DIM
         SET {col_str}
-        WHERE ACCOUNT_ID = {account_id}
+        WHERE ACCOUNT_ID = '{account_id}'
         '''
         try:
             db_query(update_sql)

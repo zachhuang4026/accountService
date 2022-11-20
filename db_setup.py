@@ -15,7 +15,7 @@ try:
 
     create_sql = '''
     CREATE TABLE IF NOT EXISTS ACCOUNT_DIM(
-        ACCOUNT_ID INT NOT NULL,
+        ACCOUNT_ID TEXT NOT NULL,
         NAME TEXT NOT NULL,
         EMAIL TEXT NOT NULL,
         PASSWORD TEXT NOT NULL,
@@ -30,8 +30,8 @@ try:
     insert_sql = '''
     INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
     VALUES
-    (1, 'Admin', 'admin@gmail.com', 'admin', 'Active', True),
-    (2, 'User', 'user@gmail.com', 'user', 'Active', False);
+    ('1', 'Admin', 'admin@gmail.com', 'admin', 'Active', True),
+    ('2', 'User', 'user@gmail.com', 'user', 'Active', False);
     '''
     cursor.execute(insert_sql)
     print("Default values inserted into ACCOUNT_DIM successfully........")
