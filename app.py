@@ -193,10 +193,18 @@ def updateAccount():
         for k,v in update_params.items(): # ToDo - is hardcoding logic for creating sql best approach here?
             if k == 'account_id': # prevent updating of account_id
                 pass
-            if k != 'is_admin':
-                col_str += f"{k} = '{v}',"
-            else:
+            if k == 'is_admin':
                 col_str += f"{k} = {v},"
+            else:
+                if k == 'email': # Check if email already in DB; throw error if so 
+                    verify_email_sql = f"SELECT ACCOUNT_ID FROM ACCOUNT_DIM WHERE EMAIL = '{v}'"
+                    rows = db_query(verify_email_sql, fetch_results=True)
+                    if len(rows) > 0:
+                        status_code = 500
+                        response = {'message': 'Error updating account. Account already exists for the provided email', 'status_code': status_code}
+                        return jsonify(response), status_code
+
+                col_str += f"{k} = '{v}',"
         col_str = col_str[:-1] # remove traililng comma
         print(col_str)
 
@@ -211,7 +219,7 @@ def updateAccount():
             response = {'message': 'Account information successfully updated', 'status_code': status_code}
         except:
             status_code = 500
-            response = {'message': 'Error deleting account', 'status_code': status_code}
+            response = {'message': 'Error updating account', 'status_code': status_code}
     return jsonify(response), status_code
 
 app.run(host='0.0.0.0', port=5001)
