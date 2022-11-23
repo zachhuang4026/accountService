@@ -40,14 +40,14 @@ def heartbeat():
     return jsonify(response), status_code
 
 @app.route('/getAccount/<account_id>', methods=['GET'])
-def getAccount(account_id):
+def getAccount(account_id, DEBUG=False):
     """
     Provided account_id in query string, return account information.
     Throws error if > 1 record is found for provided account_id
     Account info returned: account_id, name, email 
     """
     # ToDo - get account info from DB
-    if app.config['DEBUG'] == True:
+    if DEBUG == True:
         status_code = 200
         response = {
             'account_id': '1234',
@@ -96,7 +96,7 @@ def authenticate():
             # ToDo - probably should handle pw as hashes
             # ToDo - return JWT token?
             account_query = f"""
-            SELECT ACCOUNT_ID, EMAIL, PASSWORD
+            SELECT ACCOUNT_ID, EMAIL, PASSWORD, IS_ADMIN
             FROM ACCOUNT_DIM
             WHERE EMAIL = '{email}'"""
             
@@ -113,7 +113,8 @@ def authenticate():
                 if account_info['email'] == email and account_info['password'] == password:
                     # Authenticated
                     status_code = 200
-                    response = {'message': 'User is authenticated', 'status_code': status_code}
+                    data = {'account_id':account_info['account_id'], 'is_admin': account_info['is_admin']}
+                    response = {'message': 'User is authenticated', 'data': data, 'status_code': status_code}
                 else:
                     status_code = 401
                     response = {'message': 'Provided email/password do not match', 'status_code': status_code}
