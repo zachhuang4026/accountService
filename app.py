@@ -135,7 +135,7 @@ def createAccount():
         account_query = f"select account_id from ACCOUNT_DIM where email = '{email}'"
         db_response = db_query(account_query, fetch_results=True)
         if len(db_response) != 0:
-            status_code = 200
+            status_code = 406
             response = {'message': 'Account already exists for the provided email', 'status_code': status_code}
             return jsonify(response), status_code
         
@@ -149,7 +149,7 @@ def createAccount():
         '''
         try:
             db_query(insert_sql)
-            status_code = 200
+            status_code = 201
             response = {'message': 'Account successfully created', 'status_code': status_code}
         except:
             status_code = 500
