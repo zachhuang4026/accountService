@@ -110,11 +110,12 @@ def authenticate():
                 response = {'message': 'User not found in database', 'status_code': status_code}
             else:
                 account_info = db_response[0]
-                status_code = 200
                 if account_info['email'] == email and account_info['password'] == password:
                     # Authenticated
+                    status_code = 200
                     response = {'message': 'User is authenticated', 'status_code': status_code}
                 else:
+                    status_code = 401
                     response = {'message': 'Provided email/password do not match', 'status_code': status_code}
         
         return jsonify(response), status_code
