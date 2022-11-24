@@ -1,10 +1,14 @@
 from flask import Flask, jsonify, request
 import psycopg2
 import time
+import configparser
 
 app = Flask(__name__)
 
-app.config['DEBUG'] = False
+app.config['DEBUG'] = True
+
+config = configparser.ConfigParser()
+config.read('account_config.ini')
 
 def db_query(query, fetch_results=False, db='accounts'):
     """
@@ -14,7 +18,10 @@ def db_query(query, fetch_results=False, db='accounts'):
     """
     try:
         rows = None
-        conn = psycopg2.connect(f"dbname={db} user='postgres' host='localhost' password='secret_password'")
+        user = config['postgres']['user']
+        host = config['postgres']['host']
+        password = config['postgres']['password']
+        conn = psycopg2.connect(f"dbname={db} user='{user}' host='{host}' password='{password}'")
         cursor = conn.cursor()
         cursor.execute(query)
         if fetch_results:
