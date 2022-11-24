@@ -201,7 +201,7 @@ def updateAccount():
                 if k == 'email': # Check if email already in DB; throw error if so 
                     verify_email_sql = f"SELECT ACCOUNT_ID FROM ACCOUNT_DIM WHERE EMAIL = '{v}'"
                     rows = db_query(verify_email_sql, fetch_results=True)
-                    if len(rows) > 0:
+                    if (len(rows) > 1) or (len(rows) == 1 and rows[0]['account_id'] != account_id):
                         status_code = 500
                         response = {'message': 'Error updating account. Account already exists for the provided email', 'status_code': status_code}
                         return jsonify(response), status_code
