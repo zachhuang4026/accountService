@@ -118,13 +118,13 @@ def authenticate(DEBUG=False):
                 account_info = db_response[0]
                 if account_info['account_status'] == 'Suspended':
                     status_code = 401
-                    response = {'message': 'Account is suspended. Login access denied', 'status_code': status_code}
+                    response = {'message': f'Account {account_info["account_id"]} is suspended. Login access denied', 'status_code': status_code}
                     return jsonify(response), status_code
                 if account_info['email'] == email and account_info['password'] == password:
                     # Authenticated
                     status_code = 200
                     data = {'account_id':account_info['account_id'], 'is_admin': account_info['is_admin']}
-                    response = {'message': 'Account is authenticated', 'data': data, 'status_code': status_code}
+                    response = {'message': f'Account {account_info["account_id"]} is authenticated', 'data': data, 'status_code': status_code}
                 else:
                     status_code = 401
                     response = {'message': 'Provided email/password do not match', 'status_code': status_code}
@@ -170,10 +170,10 @@ def createAccount():
         try:
             db_query(insert_sql)
             status_code = 201
-            response = {'message': 'Account successfully created', 'status_code': status_code}
+            response = {'message': f'Account {account_id} successfully created', 'status_code': status_code}
         except:
             status_code = 500
-            response = {'message': 'Error creating account', 'status_code': status_code}
+            response = {'message': f'Error creating account {account_id}', 'status_code': status_code}
 
     return jsonify(response), status_code  
 
@@ -198,10 +198,10 @@ def deleteAccount():
         try:
             db_query(delete_sql)
             status_code = 200
-            response = {'message': 'Account successfully deleted', 'status_code': status_code}
+            response = {'message': f'Account {account_id} successfully deleted', 'status_code': status_code}
         except:
             status_code = 500
-            response = {'message': 'Error deleting account', 'status_code': status_code}
+            response = {'message': f'Error deleting account {account_id}', 'status_code': status_code}
     return jsonify(response), status_code
 
 @app.route('/updateAccount', methods=['POST'])
@@ -217,39 +217,56 @@ def updateAccount():
     if account_id is None:
         status_code = 400
         response = {'message': 'Bad request. Did not contain email or password values in JSON', 'status_code': status_code}
-    else:
-        # Create string of update logic 
-        col_str = ''
-        for k,v in update_params.items(): 
-            if k == 'account_id': # prevent updating of account_id
-                pass
-            if k == 'is_admin': # No quotes needed around boolean field
-                col_str += f"{k} = {v},"
-            else:
-                # Check if email already in DB and not current account; throw error if so 
-                if k == 'email': 
-                    verify_email_sql = f"SELECT ACCOUNT_ID FROM ACCOUNT_DIM WHERE EMAIL = '{v}'"
-                    rows = db_query(verify_email_sql, fetch_results=True)
-                    if (len(rows) > 1) or (len(rows) == 1 and rows[0]['account_id'] != account_id):
-                        status_code = 500
-                        response = {'message': 'Error updating account. Account already exists for the provided email', 'status_code': status_code}
-                        return jsonify(response), status_code
-                col_str += f"{k} = '{v}',"
-        
-        col_str = col_str[:-1] # remove traililng comma. SQL string complete
+        return jsonify(response), status_code
+    
+    # Check if user exists in DB
+    check_exists_sql = f"""
+    SELECT ACCOUNT_ID
+    FROM ACCOUNT_DIM
+    WHERE ACCOUNT_ID = '{account_id}'
+    """
+    rows = db_query(check_exists_sql, fetch_results=True)
+    if len(rows) == 0:
+        status_code = 404
+        response = {'message': f'Account {account_id} does not exist in database', 'status_code': status_code}
+        return jsonify(response), status_code
+ 
+    # Create string of update logic 
+    col_str = ''
+    for k,v in update_params.items(): 
+        if k == 'account_id': # prevent updating of account_id
+            pass
+        if k == 'is_admin': # No quotes needed around boolean field
+            col_str += f"{k} = {v},"
+        else:
+            # Check if email already in DB and not current account; throw error if so 
+            if k == 'email': 
+                verify_email_sql = f"""
+                SELECT ACCOUNT_ID
+                FROM ACCOUNT_DIM
+                WHERE EMAIL = '{v}'
+                """
+                rows = db_query(verify_email_sql, fetch_results=True)
+                if (len(rows) > 1) or (len(rows) == 1 and rows[0]['account_id'] != account_id):
+                    status_code = 500
+                    response = {'message': f'Error updating account {account_id}. Account already exists for the provided email', 'status_code': status_code}
+                    return jsonify(response), status_code
+            col_str += f"{k} = '{v}',"
+    
+    col_str = col_str[:-1] # remove traililng comma. SQL string complete
 
-        update_sql = f'''
-        UPDATE ACCOUNT_DIM
-        SET {col_str}
-        WHERE ACCOUNT_ID = '{account_id}'
-        '''
-        try:
-            db_query(update_sql)
-            status_code = 200
-            response = {'message': 'Account information successfully updated', 'status_code': status_code}
-        except:
-            status_code = 500
-            response = {'message': 'Error updating account', 'status_code': status_code}
+    update_sql = f'''
+    UPDATE ACCOUNT_DIM
+    SET {col_str}
+    WHERE ACCOUNT_ID = '{account_id}'
+    '''
+    try:
+        db_query(update_sql)
+        status_code = 200
+        response = {'message': f'Information successfully updated for account {account_id}', 'status_code': status_code}
+    except:
+        status_code = 500
+        response = {'message': f'Error updating account {account_id}', 'status_code': status_code}
     return jsonify(response), status_code
 
 app.run(host='0.0.0.0', port=5001)
