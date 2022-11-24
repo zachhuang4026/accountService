@@ -102,7 +102,7 @@ def authenticate(DEBUG=False):
             # ToDo - probably should handle pw as hashes
             # Get account info from email
             account_query = f"""
-            SELECT ACCOUNT_ID, EMAIL, PASSWORD, IS_ADMIN
+            SELECT ACCOUNT_ID, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN
             FROM ACCOUNT_DIM
             WHERE EMAIL = '{email}'"""
             
@@ -116,6 +116,10 @@ def authenticate(DEBUG=False):
                 response = {'message': 'Account not found in database', 'status_code': status_code}
             else:
                 account_info = db_response[0]
+                if account_info['account_status'] == 'Suspended':
+                    status_code = 401
+                    response = {'message': 'Account is suspended. Login access denied', 'status_code': status_code}
+                    return jsonify(response), status_code
                 if account_info['email'] == email and account_info['password'] == password:
                     # Authenticated
                     status_code = 200
