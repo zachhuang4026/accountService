@@ -56,5 +56,10 @@ python3 app.py
 **Postman**
 - Set POST input parameters using the Raw input for request body. https://stackoverflow.com/questions/39008071/send-post-data-via-raw-json-with-postman
 
-## ToDo
-- in Update method, check to ensure updated email is not in use before updating
+## Database Credentials
+- `ACCOUNT_DIM` table has been populated with the following identities for testing
+
+| Username | Password | Is Admin? |
+|----------|----------|-----------|
+| `admin`  | `admin`  | True      |
+| `user`   | `user`   | False     |

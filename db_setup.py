@@ -30,8 +30,8 @@ try:
     insert_sql = '''
     INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
     VALUES
-    ('1', 'Admin', 'admin@gmail.com', 'admin', 'Active', True),
-    ('2', 'User', 'user@gmail.com', 'user', 'Active', False);
+    ('1', 'Admin', 'admin', 'admin', 'Active', True),
+    ('2', 'User', 'user', 'user', 'Active', False);
     '''
     cursor.execute(insert_sql)
     print("Default values inserted into ACCOUNT_DIM successfully........")
