@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 import psycopg2
-import time
+import uuid
 import configparser
 
 app = Flask(__name__)
@@ -161,7 +161,8 @@ def createAccount():
             return jsonify(response), status_code
         
         # Populate values for account, insert into DB
-        account_id = hash(email + str(time.time())) % 2147483647 # max int value
+        # account_id = hash(email + str(time.time())) % 2147483647 # max int valuexx
+        account_id = str(uuid.uuid4())
         account_info = f"('{account_id}', '{name}', '{email}', '{password}', 'Active', False)"
         insert_sql = f'''
         INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)

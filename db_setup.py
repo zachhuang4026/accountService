@@ -30,8 +30,11 @@ try:
     insert_sql = '''
     INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
     VALUES
-    ('1', 'Admin', 'admin', 'admin', 'Active', True),
-    ('2', 'User', 'user', 'user', 'Active', False);
+    ('56786785-6a10-4921-bc74-5573af7c7890', 'Admin', 'admin', 'admin', 'Active', True),
+    ('34563456-6a10-4921-bc74-5573af707890', 'User', 'user', 'user', 'Active', False),
+    ('12341234-6a10-4921-bc74-5573af7ababa', 'George Washington', 'gw@us.gov', 'gw', 'Active', False),
+    ('00000000-6a10-4921-bc74-5573af7c7890', 'Peyton Manning', 'peyton@colts.com', '18', 'Active', False),
+    ('10101010-6a10-4921-bc74-5573af7c7890', 'Adam Sandler', 'adam@sandler.com', 'adam', 'Active', False);
     '''
     cursor.execute(insert_sql)
     print("Default values inserted into ACCOUNT_DIM successfully........")

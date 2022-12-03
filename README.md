@@ -63,3 +63,13 @@ python3 app.py
 |----------|----------|-----------|
 | `admin`  | `admin`  | True      |
 | `user`   | `user`   | False     |
+
+**4. Push Container to Docker Hub**
+```bash
+# Create image
+docker commit 9816053b72a2 adamlim1/account_service
+# Push image to Docker Hub
+docker image push adamlim1/account_service
+# Pull image
+docker run -it -p 5001:5001 --net ebay --ip 172.20.0.4 --name AccountService adamlim1/account_service:latest
+```
