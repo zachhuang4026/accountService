@@ -2,6 +2,7 @@
 
 ## Setup
 **Creating Docker Container for Account Service**
+_OPTION 1: Build from Source_
 ```bash
 docker run -p 5001:5001 --net ebay --ip 172.20.0.4 --name AccountService -e POSTGRES_PASSWORD=secret_password -d postgres:15.1-alpine
 docker exec -it AccountService /bin/sh
@@ -19,6 +20,23 @@ exit
 # Copy files from local to container: docker cp accountService AccountService:/.
 cd /accountService
 python3 db_setup.py
+```
+
+_OPTION 2: Pull Image from Docker Hub_
+```bash
+# Assumes ebay network has previously been created via: ocker network create --subnet=172.20.0.0/16 ebay
+
+# Pull image
+docker run -it -p 5001:5001 --net ebay --ip 172.20.0.4 --name AccountService adamlim1/account_service:latest
+```
+**4. Pushing Container to Docker Hub**
+```bash
+# Create image
+docker commit 9816053b72a2 adamlim1/account_service
+# Push image to Docker Hub
+docker image push adamlim1/account_service
+# Pull image
+docker run -it -p 5001:5001 --net ebay --ip 172.20.0.4 --name AccountService adamlim1/account_service:latest
 ```
 
 ## Running Flask App
@@ -59,17 +77,11 @@ python3 app.py
 ## Database Credentials
 - `ACCOUNT_DIM` table has been populated with the following identities for testing
 
-| Username | Password | Is Admin? |
-|----------|----------|-----------|
-| `admin`  | `admin`  | True      |
-| `user`   | `user`   | False     |
-
-**4. Push Container to Docker Hub**
-```bash
-# Create image
-docker commit 9816053b72a2 adamlim1/account_service
-# Push image to Docker Hub
-docker image push adamlim1/account_service
-# Pull image
-docker run -it -p 5001:5001 --net ebay --ip 172.20.0.4 --name AccountService adamlim1/account_service:latest
-```
+| account_id                           | Name   | Email (Username)     | Password | Account Status | is_admin |
+|--------------------------------------|--------|----------------------|----------|----------------|----------|
+| 56786785-6a10-4921-bc74-5573af7c7890 | Admin  | admin                | admin    | Active         | True     |
+| 34563456-6a10-4921-bc74-5573af707890 | User   | user                 | user     | Active         | False    |
+| 12341234-6a10-4921-bc74-5573af7ababa | Seller | seller               | seller   | Active         | False    |
+| 00000000-6a10-4921-bc74-5573af7c7890 | Buyer  | buyer                | buyer    | Active         | False    |
+| 10101010-6a10-4921-bc74-5573af7c7890 | Adam   | adamlim@uchicago.edu | adam     | Active         | True     |
+|                                      |        |                      |          |                |          |
