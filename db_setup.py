@@ -31,9 +31,9 @@ try:
     INSERT INTO ACCOUNT_DIM (ACCOUNT_ID, NAME, EMAIL, PASSWORD, ACCOUNT_STATUS, IS_ADMIN)
     VALUES
     ('56786785-6a10-4921-bc74-5573af7c7890', 'Admin', 'admin', 'admin', 'Active', True),
-    ('34563456-6a10-4921-bc74-5573af707890', 'User', 'user', 'user', 'Active', False),
-    ('12341234-6a10-4921-bc74-5573af7ababa', 'Seller', 'seller', 'seller', 'Active', False),
-    ('00000000-6a10-4921-bc74-5573af7c7890', 'Buyer', 'buyer', 'buyer', 'Active', False),
+    ('34563456-6a10-4921-bc74-5573af707890', 'User', 'yichieh@uchicago.edu', 'user', 'Active', False),
+    ('12341234-6a10-4921-bc74-5573af7ababa', 'Seller', 'zach.cy.huang@gmail.com', 'seller', 'Active', False),
+    ('00000000-6a10-4921-bc74-5573af7c7890', 'Buyer', 'lleyhan08@gmail.com', 'buyer', 'Active', False),
     ('10101010-6a10-4921-bc74-5573af7c7890', 'Adam', 'adamlim@uchicago.edu', 'adam', 'Active', True);
     '''
     cursor.execute(insert_sql)
